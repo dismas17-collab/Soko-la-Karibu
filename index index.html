@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="sw">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Soko la Karibu — Marketplace</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7f8;color:#17202a;padding-bottom:78px}
+header{background:#087f5b;color:#fff;padding:18px 16px}.logo{font-size:25px;font-weight:800}.tag{font-size:12px}
+main{max-width:900px;margin:auto;padding:16px}.page{display:none}.page.active{display:block}
+.box{background:#fff;border-radius:15px;padding:16px;margin:12px 0;box-shadow:0 2px 10px #0001}
+input{width:100%;padding:13px;border:1px solid #ddd;border-radius:10px;margin:7px 0 12px;font-size:15px}
+button{border:0;border-radius:11px;padding:12px 15px;background:#087f5b;color:#fff;font-weight:800}.secondary{background:#edf4f1;color:#087f5b}.wide{width:100%}
+nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #ddd;display:flex;justify-content:space-around;padding:7px;z-index:10}nav button{background:transparent;color:#333;padding:6px 8px;font-size:12px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.card{background:#fff;border-radius:15px;overflow:hidden;box-shadow:0 2px 10px #0001}.pic{height:135px;background:#e1e3e5;display:flex;align-items:center;justify-content:center;font-size:55px}.info{padding:12px}.name{font-weight:800}.price{color:#087f5b;font-size:18px;font-weight:800;margin:6px 0}
+.badge{background:#e6f7f0;color:#087f5b;padding:6px 9px;border-radius:9px;font-size:12px}.msg{padding:10px;border-radius:9px;background:#eef4f1;margin:10px 0}.error{background:#fff0f0;color:#a00}.empty{text-align:center;padding:35px;color:#777}
+#setup{max-width:600px;margin:50px auto}
+@media(min-width:700px){.grid{grid-template-columns:repeat(4,1fr)}}
+</style>
+<script>window.__SUPABASE_PUBLISHABLE_KEY__="sb_publishable_Sey-WxN51T21o3_km6BfVQ_tsMBl6r0";</script></head>
+<body>
+
+<div id="setup" class="box" style="display:none">
+<h2>🔐 Soko la Karibu</h2>
+<p>Inaandaa mfumo wa Soko la Karibu. Tafadhali subiri...</p>
+<div id="setupMsg"></div>
+</div>
+
+<header id="appHeader" style="display:none">
+<div class="logo">Soko la Karibu 🇹🇿</div><div class="tag">Nunua • Uza • Weka Tangazo • Fanya Biashara</div>
+</header>
+
+<main id="app" style="display:none">
+<section id="home" class="page active">
+<h2>Karibu kwenye Soko la Karibu 👋</h2>
+<div class="box">
+  <input id="searchBox" placeholder="🔎 Tafuta bidhaa, huduma au eneo..." oninput="loadProducts()">
+  <div id="categories" style="display:flex;gap:7px;overflow:auto;padding:4px 0 2px">
+    <button class="secondary" onclick="setCategory('')">Zote</button>
+    <button class="secondary" onclick="setCategory('Simu')">📱 Simu</button>
+    <button class="secondary" onclick="setCategory('Magari')">🚗 Magari</button>
+    <button class="secondary" onclick="setCategory('Nyumba')">🏠 Nyumba</button>
+    <button class="secondary" onclick="setCategory('Mavazi')">👕 Mavazi</button>
+    <button class="secondary" onclick="setCategory('Huduma')">🛠️ Huduma</button>
+  </div>
+</div>
+<div class="row"><h3>Matangazo</h3><span class="badge">Marketplace</span></div>
+<div id="products" class="grid"></div>
+</section>
+
+<section id="auth" class="page">
+<h2>👤 Akaunti</h2>
+<div class="box">
+<h3>Ingia</h3>
+<input id="loginEmail" type="email" placeholder="Email">
+<input id="loginPassword" type="password" placeholder="Password">
+<button class="wide" onclick="login()">Ingia</button>
+</div>
+<div class="box">
+<h3>Jisajili</h3>
+<input id="regName" placeholder="Jina kamili">
+<input id="regPhone" placeholder="Namba ya simu">
+<input id="regEmail" type="email" placeholder="Email">
+<input id="regPassword" type="password" placeholder="Password (angalau herufi 6)">
+<label style="display:block;margin:4px 0 8px"><input id="regSeller" type="checkbox" style="width:auto;margin-right:8px">Nataka kuuza bidhaa kwenye Soko la Karibu</label>
+<button class="wide" onclick="register()">Fungua akaunti</button>
+</div>
+<div id="authMsg"></div>
+</section>
+
+<section id="account" class="page">
+<h2>👤 Akaunti yangu</h2><div id="accountBox"></div>
+</section>
+
+<section id="seller" class="page">
+<h2>🏪 Muuzaji</h2>
+<div id="sellerBox"></div>
+<div class="box">
+<h3>Weka bidhaa mpya</h3>
+<input id="prodName" placeholder="Jina la bidhaa">
+<input id="prodPrice" type="number" placeholder="Bei (TSh)">
+<input id="prodStock" type="number" placeholder="Idadi / stock">
+<input id="prodLocation" placeholder="Eneo, mfano Sinza">
+<input id="prodImage" placeholder="Link ya picha (hiari)">
+<textarea id="prodDesc" placeholder="Maelezo ya bidhaa" style="width:100%;min-height:90px;padding:12px;border:1px solid #ddd;border-radius:10px;margin:7px 0 12px;font-size:15px"></textarea>
+<button class="wide" onclick="publishProduct()">📤 Chapisha bidhaa</button>
+<div id="sellerMsg"></div>
+</div>
+<div><h3>Bidhaa zangu</h3><div id="myProducts"></div></div>
+</section>
+
+<section id="orders" class="page"><h2>📦 Oda Zangu</h2><div id="ordersBox"></div></section>
+<section id="admin" class="page">
+<h2>👑 Owner / Admin Dashboard</h2>
+<div id="adminGuard"></div>
+<div id="adminContent" style="display:none">
+  <div class="grid">
+    <div class="box"><small>Watumiaji</small><h2 id="statUsers">—</h2></div>
+    <div class="box"><small>Matangazo</small><h2 id="statProducts">—</h2></div>
+    <div class="box"><small>Oda</small><h2 id="statOrders">—</h2></div>
+    <div class="box"><small>Platform commission</small><h2 id="statCommission">TSh 0</h2></div>
+  </div>
+  <div class="box">
+    <h3>⚙️ Commission ya platform</h3>
+    <p style="color:#666">Hii ni setting ya MVP. Payment/PesaPal na payout za sellers zitaunganishwa baada ya kuthibitisha database/payment flow.</p>
+    <input id="commissionRate" type="number" min="0" max="100" step="0.5" placeholder="Mfano 5">
+    <button onclick="saveCommission()">Hifadhi commission %</button>
+  </div>
+  <div class="box">
+    <h3>🛡️ Usimamizi wa matangazo</h3>
+    <div id="adminProducts"></div>
+  </div>
+  <div class="box">
+    <h3>💰 Oda na mapato</h3>
+    <div id="adminOrders"></div>
+  </div>
+</div>
+</section>
+
+<div class="box" style="margin:20px 0">
+  <b>🏪 Soko la Karibu ni platform ya biashara.</b>
+  <p style="margin-bottom:0;color:#666;font-size:13px">Watu wanaweka matangazo yao; platform inawaunganisha wanunuzi na wauzaji. Mmiliki wa platform anasimamia mfumo na baadaye anaweza kupata mapato kupitia commission, Boost na huduma za biashara.</p>
+</div>
+</main>
+
+<nav id="nav" style="display:none">
+<button onclick="show('home')">🏠<br>Home</button>
+<button onclick="show('orders')">📦<br>Oda</button>
+<button onclick="show('seller')">🏪<br>Uza</button><button id="adminNav" style="display:none" onclick="show('admin')">👑<br>Admin</button><button onclick="show('account')">👤<br>Akaunti</button>
+</nav>
+
+<script>
+const SUPABASE_URL="https://xomgyacfrckrxrafxtar.supabase.co";
+let client=null;
+let selectedCategory="";
+let commissionRate=Number(localStorage.getItem("marketplace_commission_rate")||"5");
+
+function showSetup(m=""){document.getElementById("setup").style.display="block";document.getElementById("setupMsg").innerHTML=m?`<div class="msg error">${escapeHtml(m)}</div>`:""}
+function startApp(key){
+  if(!key || !key.startsWith("sb_publishable_")) { showSetup("Mfumo wa malipo ya data bado haujawekwa. Mmiliki wa app aweke Publishable key kwenye Netlify."); return; }
+  try{
+    client=window.supabase.createClient(SUPABASE_URL,key);
+    document.getElementById("setup").style.display="none";
+    document.getElementById("app").style.display="block";
+    document.getElementById("appHeader").style.display="block";
+    document.getElementById("nav").style.display="flex";
+    loadSession(); loadProducts();
+  }catch(e){showSetup("Imeshindikana kuanzisha mfumo.")}
+}
+async function init(){
+  startApp(window.__SUPABASE_PUBLISHABLE_KEY__ || '');
+}
+function show(id){
+  document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  if(id==="orders")loadOrders();
+  if(id==="account")loadAccount();
+  if(id==="seller")loadSeller();
+  if(id==="admin")loadAdmin();
+  window.scrollTo(0,0);
+}
+function setCategory(c){selectedCategory=c;loadProducts()}
+async function loadProducts(){
+ const term=(document.getElementById("searchBox")?.value||"").trim().toLowerCase();
+ let q=client.from("products").select("id,name,price,stock,location,description,image_url,seller_id,is_active").eq("is_active",true).order("created_at",{ascending:false});
+ const {data,error}=await q;
+ const el=document.getElementById("products");
+ if(error){el.innerHTML=`<div class="box">Imeshindikana kupata matangazo: ${escapeHtml(error.message)}</div>`;return}
+ let rows=(data||[]).filter(p=>{
+   const hay=[p.name,p.location,p.description].join(" ").toLowerCase();
+   const cat=selectedCategory.toLowerCase();
+   return (!term||hay.includes(term)) && (!cat||hay.includes(cat));
+ });
+ if(!rows.length){el.innerHTML='<div class="empty">Hakuna tangazo linalolingana na utafutaji wako.</div>';return}
+ el.innerHTML=rows.map(p=>{
+   const img=p.image_url?`<img src="${escapeHtml(p.image_url)}" alt="" style="width:100%;height:135px;object-fit:cover">`:"🛍️";
+   return `<div class="card"><div class="pic">${img}</div><div class="info">
+   <div class="name">${escapeHtml(p.name)}</div>
+   <div class="price">TSh ${Number(p.price).toLocaleString()}</div>
+   <small>📍 ${escapeHtml(p.location||"Tanzania")}</small>
+   ${p.description?`<p style="font-size:12px;color:#666">${escapeHtml(p.description).slice(0,90)}${p.description.length>90?"…":""}</p>`:""}
+   <button class="wide" style="margin-top:6px" onclick="viewListing('${p.id}')">Angalia tangazo</button>
+   </div></div>`
+ }).join("");
+}
+async function viewListing(id){
+ const {data:p,error}=await client.from("products").select("id,name,price,stock,location,description,image_url,seller_id").eq("id",id).maybeSingle();
+ if(error||!p){alert("Tangazo halijapatikana.");return}
+ const img=p.image_url?`<img src="${escapeHtml(p.image_url)}" style="width:100%;max-height:260px;object-fit:cover;border-radius:12px">`:"<div class='pic' style='height:180px'>🛍️</div>";
+ const seller=p.seller_id?await client.from("profiles").select("full_name,phone").eq("id",p.seller_id).maybeSingle():{data:null};
+ const phone=seller.data?.phone||"";
+ document.getElementById("products").innerHTML=`<div class="box">${img}<h2>${escapeHtml(p.name)}</h2><div class="price">TSh ${Number(p.price).toLocaleString()}</div><p>📍 ${escapeHtml(p.location||"Tanzania")}</p><p>${escapeHtml(p.description||"Hakuna maelezo zaidi.")}</p><p><b>Muuzaji:</b> ${escapeHtml(seller.data?.full_name||"Muuzaji")}</p>${phone?`<a href="tel:${escapeHtml(phone)}"><button class="wide">📞 Wasiliana na muuzaji</button></a>`:""}<button class="secondary wide" style="margin-top:8px" onclick="loadProducts()">← Rudi kwenye matangazo</button></div>`;
+ window.scrollTo(0,0);
+}
+
+async function register(){
+ const name=regName.value.trim(),phone=regPhone.value.trim(),email=regEmail.value.trim(),password=regPassword.value, seller=regSeller.checked;
+ if(!name||!email||!password)return msg("Jaza jina, email na password.","error");
+ const {data,error}=await client.auth.signUp({email,password,options:{data:{full_name:name,phone,role:seller?"seller":"customer"}}});
+ if(error)return msg(error.message,"error");
+ msg(data.session?"Akaunti imefunguliwa.":"Akaunti imefunguliwa. Angalia email yako kuthibitisha email.");
+}
+async function login(){
+ const {data,error}=await client.auth.signInWithPassword({email:loginEmail.value.trim(),password:loginPassword.value});
+ if(error)return msg(error.message,"error");
+ msg("Umeingia kikamilifu.");
+ show("account");loadAccount();
+}
+async function logout(){await client.auth.signOut();document.getElementById("adminNav").style.display="none";show("auth");msg("Umetoka kwenye akaunti.")}
+async function loadSession(){
+ const {data}=await client.auth.getSession();
+ if(data.session){
+   const {data:p}=await client.from("profiles").select("role").eq("id",data.session.user.id).maybeSingle();
+   if(p?.role==="admin")document.getElementById("adminNav").style.display="block";
+   show("account");
+ }
+}
+async function loadAccount(){
+ const {data:{user}}=await client.auth.getUser();const el=document.getElementById("accountBox");
+ if(!user){el.innerHTML='<div class="box">Hujaingia. <button onclick="show(\'auth\')">Ingia / Jisajili</button></div>';return}
+ const {data:p}=await client.from("profiles").select("full_name,phone,role").eq("id",user.id).maybeSingle();
+ const role=p?.role||"customer";
+ el.innerHTML=`<div class="box"><b>${escapeHtml(p?.full_name||user.email||"Mteja")}</b><p>${escapeHtml(p?.phone||"")}</p><span class="badge">${escapeHtml(role)}</span><hr>${role==="seller"||role==="admin"?'<button onclick="show(\'seller\')">🏪 Fungua sehemu ya Muuzaji</button>':'<button class="secondary" onclick="becomeSeller()">🏪 Nataka kuuza bidhaa</button>'} ${role==="admin"?'<button onclick="show(\'admin\')">👑 Owner Dashboard</button>':''} <button onclick="logout()">Toka</button></div>`;
+}
+
+async function becomeSeller(){
+ const {data:{user}}=await client.auth.getUser();
+ if(!user)return show("auth");
+ const {error}=await client.from("profiles").update({role:"seller"}).eq("id",user.id);
+ if(error){alert("Imeshindikana kufungua akaunti ya muuzaji: "+error.message);return}
+ alert("Akaunti yako sasa ni ya muuzaji."); loadAccount(); show("seller");
+}
+async function loadSeller(){
+ const {data:{user}}=await client.auth.getUser(); const box=document.getElementById("sellerBox");
+ if(!user){box.innerHTML='<div class="box">Ingia kwanza. <button onclick="show(\'auth\')">Ingia</button></div>';return}
+ const {data:p}=await client.from("profiles").select("role,full_name").eq("id",user.id).maybeSingle();
+ if(!p || !["seller","admin"].includes(p.role)){box.innerHTML='<div class="box">Hujawa muuzaji. Bonyeza Akaunti kisha <b>Nataka kuuza bidhaa</b>.</div>';document.getElementById("myProducts").innerHTML="";return}
+ box.innerHTML='<div class="msg">Karibu muuzaji. Weka bidhaa zako hapa chini.</div>';
+ const {data,error}=await client.from("products").select("id,name,price,stock,location,is_active,created_at").eq("seller_id",user.id).order("created_at",{ascending:false});
+ const el=document.getElementById("myProducts");
+ if(error){el.innerHTML=`<div class="box error">${escapeHtml(error.message)}</div>`;return}
+ el.innerHTML=data?.length?data.map(p=>`<div class="box"><div class="row"><b>${escapeHtml(p.name)}</b><span class="badge">${p.is_active?'Haiuzwa':'Imefichwa'}</span></div><div class="price">TSh ${Number(p.price).toLocaleString()}</div><small>Stock: ${Number(p.stock||0)} • ${escapeHtml(p.location||'')}</small></div>`).join(""):'<div class="empty">Bado hujaweka bidhaa.</div>';
+}
+async function publishProduct(){
+ const {data:{user}}=await client.auth.getUser(); if(!user){show("auth");return}
+ const {data:p}=await client.from("profiles").select("role").eq("id",user.id).maybeSingle();
+ if(!p || !["seller","admin"].includes(p.role)){document.getElementById("sellerMsg").innerHTML='<div class="msg error">Fungua kwanza akaunti ya muuzaji.</div>';return}
+ const name=prodName.value.trim(), price=Number(prodPrice.value), stock=Number(prodStock.value||0), location=prodLocation.value.trim(), description=prodDesc.value.trim(), image_url=prodImage.value.trim();
+ if(!name||!price){document.getElementById("sellerMsg").innerHTML='<div class="msg error">Jaza jina na bei ya bidhaa.</div>';return}
+ const {error}=await client.from("products").insert({seller_id:user.id,name,price,stock,location,description,image_url,is_active:true});
+ if(error){document.getElementById("sellerMsg").innerHTML=`<div class="msg error">${escapeHtml(error.message)}</div>`;return}
+ ["prodName","prodPrice","prodStock","prodLocation","prodImage","prodDesc"].forEach(id=>document.getElementById(id).value="");
+ document.getElementById("sellerMsg").innerHTML='<div class="msg">✅ Bidhaa imechapishwa.</div>';
+ loadProducts(); loadSeller();
+}
+
+async function loadAdmin(){
+ const guard=document.getElementById("adminGuard"),content=document.getElementById("adminContent");
+ const {data:{user}}=await client.auth.getUser();
+ if(!user){guard.innerHTML='<div class="box error">Ingia kama owner/admin kwanza.</div>';content.style.display="none";return}
+ const {data:p}=await client.from("profiles").select("role").eq("id",user.id).maybeSingle();
+ if(p?.role!=="admin"){guard.innerHTML='<div class="box error">Eneo hili ni la mmiliki wa platform tu.</div>';content.style.display="none";return}
+ guard.innerHTML='<div class="msg">👑 Owner mode: unasimamia marketplace nzima.</div>';content.style.display="block";
+ document.getElementById("commissionRate").value=commissionRate;
+ const [{data:users},{data:products},{data:orders}] = await Promise.all([
+   client.from("profiles").select("id,full_name,role"),
+   client.from("products").select("id,name,price,stock,location,is_active,created_at"),
+   client.from("orders").select("id,total_amount,status,payment_status,created_at").order("created_at",{ascending:false}).limit(50)
+ ]);
+ document.getElementById("statUsers").textContent=(users||[]).length;
+ document.getElementById("statProducts").textContent=(products||[]).length;
+ document.getElementById("statOrders").textContent=(orders||[]).length;
+ const gross=(orders||[]).reduce((s,o)=>s+Number(o.total_amount||0),0);
+ document.getElementById("statCommission").textContent="TSh "+Math.round(gross*commissionRate/100).toLocaleString();
+ document.getElementById("adminProducts").innerHTML=(products||[]).slice(0,30).map(p=>`<div class="msg"><div class="row"><b>${escapeHtml(p.name)}</b><span class="badge">${p.is_active?"ACTIVE":"HIDDEN"}</span></div><small>TSh ${Number(p.price).toLocaleString()} • ${escapeHtml(p.location||"")}</small></div>`).join("")||"<p>Hakuna matangazo.</p>";
+ document.getElementById("adminOrders").innerHTML=(orders||[]).slice(0,30).map(o=>`<div class="msg"><div class="row"><b>#${String(o.id).slice(0,8)}</b><span class="badge">${escapeHtml(o.status||"")}</span></div><div>TSh ${Number(o.total_amount||0).toLocaleString()}</div><small>${escapeHtml(o.payment_status||"")}</small></div>`).join("")||"<p>Hakuna oda.</p>";
+}
+function saveCommission(){
+ commissionRate=Math.max(0,Math.min(100,Number(document.getElementById("commissionRate").value||5)));
+ localStorage.setItem("marketplace_commission_rate",commissionRate);
+ alert("Commission ya platform imehifadhiwa kwenye kifaa hiki: "+commissionRate+"%");
+ loadAdmin();
+}
+
+async function loadOrders(){
+ const {data:{user}}=await client.auth.getUser(),el=document.getElementById("ordersBox");
+ if(!user){el.innerHTML='<div class="empty">Ingia kwanza kuona oda.</div>';return}
+ const {data,error}=await client.from("orders").select("id,total_amount,status,payment_status,delivery_address,created_at").eq("customer_id",user.id).order("created_at",{ascending:false});
+ if(error){el.innerHTML=`<div class="box">${error.message}</div>`;return}
+ el.innerHTML=data?.length?data.map(o=>`<div class="box"><div class="row"><b>Oda #${String(o.id).slice(0,8)}</b><span class="badge">${escapeHtml(o.status)}</span></div><p>TSh ${Number(o.total_amount).toLocaleString()}</p><small>${escapeHtml(o.payment_status||"")}<br>${escapeHtml(o.delivery_address||"")}</small></div>`).join(""):'<div class="empty">Bado huna oda.</div>';
+}
+function msg(t,type=""){document.getElementById("authMsg").innerHTML=`<div class="msg ${type==="error"?"error":""}">${escapeHtml(t)}</div>`}
+function escapeHtml(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
+init();
+</script>
+</body>
+</html>
